@@ -47,6 +47,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singleton;
 
@@ -287,7 +288,14 @@ class WorkerSinkTask extends WorkerTask {
     }
 
     private void commitOffsets(long now, boolean closing) {
-        if (currentOffsets.isEmpty())
+
+        Collection<TopicPartition> topicPartitions = consumer.assignment();
+
+        Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = currentOffsets.entrySet().stream()
+            .filter(e -> topicPartitions.contains(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        if (offsetsToCommit.isEmpty())
             return;
 
         committing = true;
@@ -296,7 +304,7 @@ class WorkerSinkTask extends WorkerTask {
 
         final Map<TopicPartition, OffsetAndMetadata> taskProvidedOffsets;
         try {
-            taskProvidedOffsets = task.preCommit(new HashMap<>(currentOffsets));
+            taskProvidedOffsets = task.preCommit(new HashMap<>(offsetsToCommit));
         } catch (Throwable t) {
             if (closing) {
                 log.warn("{} Offset commit failed during close");
@@ -314,7 +322,7 @@ class WorkerSinkTask extends WorkerTask {
         } finally {
             // Close the task if needed before committing the offsets.
             if (closing)
-                task.close(currentOffsets.keySet());
+                task.close(topicPartitions);
         }
 
         if (taskProvidedOffsets.isEmpty()) {
@@ -328,7 +336,7 @@ class WorkerSinkTask extends WorkerTask {
             final TopicPartition partition = taskProvidedOffsetEntry.getKey();
             final OffsetAndMetadata taskProvidedOffset = taskProvidedOffsetEntry.getValue();
             if (commitableOffsets.containsKey(partition)) {
-                if (taskProvidedOffset.offset() <= currentOffsets.get(partition).offset()) {
+                if (taskProvidedOffset.offset() <= offsetsToCommit.get(partition).offset()) {
                     commitableOffsets.put(partition, taskProvidedOffset);
                 } else {
                     log.warn("Ignoring invalid task provided offset {}/{} -- not yet consumed", partition, taskProvidedOffset);
