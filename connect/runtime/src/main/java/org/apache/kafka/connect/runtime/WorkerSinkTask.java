@@ -302,6 +302,10 @@ class WorkerSinkTask extends WorkerTask {
         commitSeqno += 1;
         commitStarted = now;
 
+	Map<TopicPartition, OffsetAndMetadata> lastCommittedOffsetsForPartitions = this.lastCommittedOffsets.entrySet().stream()
+            .filter(e -> offsetsToCommit.containsKey(e.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
         final Map<TopicPartition, OffsetAndMetadata> taskProvidedOffsets;
         try {
             taskProvidedOffsets = task.preCommit(new HashMap<>(offsetsToCommit));
@@ -311,11 +315,11 @@ class WorkerSinkTask extends WorkerTask {
                 onCommitCompleted(t, commitSeqno);
             } else {
                 log.error("{} Offset commit failed, rewinding to last committed offsets", this, t);
-                for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : lastCommittedOffsets.entrySet()) {
+                for (Map.Entry<TopicPartition, OffsetAndMetadata> entry : lastCommittedOffsetsForPartitions.entrySet()) {
                     log.debug("{} Rewinding topic partition {} to offset {}", id, entry.getKey(), entry.getValue().offset());
                     consumer.seek(entry.getKey(), entry.getValue().offset());
                 }
-                currentOffsets = new HashMap<>(lastCommittedOffsets);
+                currentOffsets = new HashMap<>(lastCommittedOffsetsForPartitions);
                 onCommitCompleted(t, commitSeqno);
             }
             return;
@@ -331,7 +335,7 @@ class WorkerSinkTask extends WorkerTask {
             return;
         }
 
-        final Map<TopicPartition, OffsetAndMetadata> commitableOffsets = new HashMap<>(lastCommittedOffsets);
+        final Map<TopicPartition, OffsetAndMetadata> commitableOffsets = new HashMap<>(lastCommittedOffsetsForPartitions);
         for (Map.Entry<TopicPartition, OffsetAndMetadata> taskProvidedOffsetEntry : taskProvidedOffsets.entrySet()) {
             final TopicPartition partition = taskProvidedOffsetEntry.getKey();
             final OffsetAndMetadata taskProvidedOffset = taskProvidedOffsetEntry.getValue();
@@ -346,7 +350,7 @@ class WorkerSinkTask extends WorkerTask {
             }
         }
 
-        if (commitableOffsets.equals(lastCommittedOffsets)) {
+        if (commitableOffsets.equals(lastCommittedOffsetsForPartitions)) {
             log.debug("{} Skipping offset commit, no change since last commit", this);
             onCommitCompleted(null, commitSeqno);
             return;
