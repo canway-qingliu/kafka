@@ -168,7 +168,7 @@ subprojects {
                       }
 
                       scm {
-                          url = "https://github.com/BKBASE-Plugin/kafka/tree/v0.10.2.0-bkbase.4"
+                          url = "https://github.com/BKBASE-Plugin/kafka/tree/v0.10.2.0-bkbase.5"
                           connection = "scm:git:https://github.com/BKBASE-Plugin/kafka.git"
                           developerConnection = "scm:git:git@github.com:BKBASE-Plugin/kafka.git"
                       }
