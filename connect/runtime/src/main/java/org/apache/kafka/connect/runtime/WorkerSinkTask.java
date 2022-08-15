@@ -170,12 +170,12 @@ class WorkerSinkTask extends WorkerTask {
 
             // Check for timed out commits
             if (committing && now >= commitTimeoutMs) {
-                log.error("Commit of {} offsets timed out, now - timeout: {}, commit_timeout: {}", this, now - commitTimeoutMs, workerConfig.getLong(WorkerConfig.OFFSET_COMMIT_TIMEOUT_MS_CONFIG));
+                log.warn("Commit of {} offsets timed out, now - timeout: {}, commit_timeout: {}", this, now - commitTimeoutMs, workerConfig.getLong(WorkerConfig.OFFSET_COMMIT_TIMEOUT_MS_CONFIG));
                 committing = false;
             }
 
 	    if (commitFailures > 0) {
-                log.warn("Commit of {} offsets failed, throw exception", this);
+                log.error("Commit of {} offsets failed, throw exception", this);
                 throw new ConnectException("commit offset failed");
 	    }
 
