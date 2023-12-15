@@ -17,12 +17,22 @@ import org.ajoberstar.grgit.Grgit
 
 buildscript {
   repositories {
+    // 优先使用本地仓库
+    mavenLocal()
 //    mavenCentral()
 //    jcenter()
     maven {
       url 'https://maven.aliyun.com/nexus/content/groups/public/'
     }
-//    mavenCentral()
+
+    maven {
+      url = "${cpackUrl}"
+      credentials {
+        username = "${cpackUsername}"
+        password = "${cpackPassword}"
+      }
+    }
+    mavenCentral()
   }
   apply from: file('gradle/buildscript.gradle'), to: buildscript
 
@@ -1034,4 +1044,27 @@ task aggregatedJavadoc(type: Javadoc) {
   includes = projectsWithJavadoc.collectMany { it.javadoc.getIncludes() }
   excludes = projectsWithJavadoc.collectMany { it.javadoc.getExcludes() }
   options.links "http://docs.oracle.com/javase/7/docs/api/"
+}
+
+
+plugins {
+  id "maven-publish"
+}
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId = "com.company.group"
+      version = "1.0"
+      from components.java
+    }
+  }
+  repositories {
+    maven {
+      url = "${cpackUrl}"
+      credentials {
+        username = "${cpackUsername}"
+        password = "${cpackPassword}"
+      }
+    }
+  }
 }
