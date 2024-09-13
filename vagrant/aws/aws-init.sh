@@ -50,7 +50,7 @@ fi
 gradle="gradle-2.2.1"
 if [ -z `which gradle` ] && [ ! -d $base_dir/$gradle ]; then
     if [ ! -e $gradle-bin.zip ]; then
-        wget https://services.gradle.org/distributions/$gradle-bin.zip
+        wget https://books-images-sh.oss-cn-shenzhen.aliyuncs.com/gradle-3.2.1-bin.zip
     fi
     unzip $gradle-bin.zip
     rm -rf $gradle-bin.zip
